@@ -534,6 +534,9 @@
                         Aguardando conexões...
                         <span class="loading"></span>
                     </p>
+                    <div id="conexoes-info" style="margin-top: 10px; text-align: center; color: #00A884;">
+                        0 conexões ativas
+                    </div>
                 </div>
             </div>
 
@@ -590,11 +593,12 @@
     <script>
         // Variáveis globais
         let peer = null;
-        let conn = null;
+        let connections = new Map(); // Armazenar todas as conexões
         let meuId = null;
         let meuNome = '';
         let usuariosConectados = [];
         let souHost = false;
+        let salaId = '';
 
         // Elementos DOM
         const setupScreen = document.getElementById('setup-screen');
@@ -608,6 +612,7 @@
         const chatTitle = document.getElementById('chat-title');
         const criarIdInput = document.getElementById('criar-id');
         const entrarIdInput = document.getElementById('entrar-id');
+        const conexoesInfo = document.getElementById('conexoes-info');
 
         // Alternar entre painéis
         function showPanel(panel) {
@@ -678,13 +683,23 @@
 
             meuNome = nome;
             souHost = true;
+            salaId = idSala;
 
             // Inicializar Peer com ID personalizado
             peer = new Peer(idSala, {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 3
+                debug: 3,
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' }
+                    ]
+                }
             });
 
             peer.on('open', (id) => {
@@ -694,8 +709,9 @@
                 
                 // Adicionar usuário atual à lista
                 usuariosConectados = [{ 
-                    id: 'host_' + meuId, 
-                    nome: meuNome 
+                    id: meuId, 
+                    nome: meuNome,
+                    isHost: true
                 }];
                 atualizarListaUsuarios();
                 
@@ -706,46 +722,63 @@
                 connectionStatus.textContent = 'Host - Online';
                 chatTitle.textContent = `Sala: ${id}`;
                 
-                // Adicionar mensagem de boas-vindas
                 adicionarMensagemSistema('Você criou a sala. Compartilhe o ID para outros entrarem.');
                 
                 // Configurar recebimento de conexões
                 peer.on('connection', (connection) => {
-                    const novaConn = connection;
+                    console.log('Nova conexão recebida de:', connection.peer);
                     
-                    novaConn.on('data', (data) => {
-                        processarMensagem(data, novaConn);
+                    connection.on('data', (data) => {
+                        processarMensagem(data, connection);
                     });
                     
-                    novaConn.on('open', () => {
-                        // Quando cliente conecta, enviar lista atual de usuários
-                        novaConn.send({
+                    connection.on('open', () => {
+                        console.log('Conexão aberta com:', connection.peer);
+                        
+                        // Adicionar à lista de conexões
+                        connections.set(connection.peer, connection);
+                        
+                        // Atualizar contador
+                        if (conexoesInfo) {
+                            conexoesInfo.textContent = `${connections.size} conexões ativas`;
+                        }
+                        
+                        // Enviar lista de usuários atual
+                        connection.send({
                             type: 'userlist',
                             usuarios: usuariosConectados
                         });
-                        
-                        // Pedir informações do cliente
-                        novaConn.send({
-                            type: 'request_info'
-                        });
                     });
                     
-                    novaConn.on('close', () => {
-                        // Remover usuário quando desconectar
-                        const usuarioRemover = Array.from(peer.connections).find(([key, conns]) => 
-                            conns.some(c => c === novaConn)
-                        );
+                    connection.on('close', () => {
+                        console.log('Conexão fechada com:', connection.peer);
                         
-                        if (usuarioRemover) {
-                            usuariosConectados = usuariosConectados.filter(u => u.id !== usuarioRemover[0]);
+                        // Remover usuário da lista
+                        const usuarioRemovido = usuariosConectados.find(u => u.id === connection.peer);
+                        if (usuarioRemovido) {
+                            usuariosConectados = usuariosConectados.filter(u => u.id !== connection.peer);
                             atualizarListaUsuarios();
                             
                             // Avisar outros clientes
-                            broadcast({
+                            broadcastToAll({
+                                type: 'system',
+                                text: `${usuarioRemovido.nome} saiu do chat`
+                            });
+                            
+                            broadcastToAll({
                                 type: 'userlist',
                                 usuarios: usuariosConectados
                             });
                         }
+                        
+                        connections.delete(connection.peer);
+                        if (conexoesInfo) {
+                            conexoesInfo.textContent = `${connections.size} conexões ativas`;
+                        }
+                    });
+                    
+                    connection.on('error', (err) => {
+                        console.error('Erro na conexão:', err);
                     });
                 });
             });
@@ -762,70 +795,93 @@
 
         // Entrar em uma sala (CLIENTE)
         function entrarSala() {
-            const salaId = document.getElementById('entrar-id').value.trim();
+            const idSala = document.getElementById('entrar-id').value.trim();
             const nome = document.getElementById('entrar-nome').value.trim();
 
-            if (!salaId || !nome) {
+            if (!idSala || !nome) {
                 mostrarToast('Preencha todos os campos');
                 return;
             }
 
             meuNome = nome;
             souHost = false;
+            salaId = idSala;
 
             // Inicializar Peer com ID aleatório
             peer = new Peer({
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 3
+                debug: 3,
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' }
+                    ]
+                }
             });
 
             peer.on('open', (id) => {
                 meuId = id;
+                console.log('Peer ID do cliente:', id);
                 
-                // Conectar à sala
-                conn = peer.connect(salaId, {
-                    reliable: true
+                mostrarToast('Conectando à sala...');
+                
+                // Tentar conectar à sala
+                const connection = peer.connect(idSala, {
+                    reliable: true,
+                    serialization: 'json',
+                    metadata: {
+                        nome: nome
+                    }
                 });
 
-                conn.on('open', () => {
+                connection.on('open', () => {
+                    console.log('Conexão estabelecida com o host');
+                    
+                    connections.set(idSala, connection);
+                    
                     // Entrar no chat
                     setupScreen.style.display = 'none';
                     chatContainer.style.display = 'flex';
                     sendButton.disabled = false;
                     connectionStatus.textContent = 'Conectado';
-                    chatTitle.textContent = `Sala: ${salaId}`;
+                    chatTitle.textContent = `Sala: ${idSala}`;
+                    
+                    adicionarMensagemSistema('Conectado à sala!');
                     
                     // Enviar informações do usuário
-                    conn.send({
+                    connection.send({
                         type: 'join',
                         nome: meuNome,
                         id: meuId
                     });
-
-                    adicionarMensagemSistema('Conectado à sala!');
                 });
 
-                conn.on('data', (data) => {
-                    processarMensagem(data, conn);
+                connection.on('data', (data) => {
+                    processarMensagem(data, connection);
                 });
 
-                conn.on('close', () => {
+                connection.on('close', () => {
+                    console.log('Conexão fechada com o host');
                     adicionarMensagemSistema('Conexão perdida');
                     sendButton.disabled = true;
                     connectionStatus.textContent = 'Desconectado';
+                    connections.delete(idSala);
                 });
 
-                conn.on('error', (err) => {
+                connection.on('error', (err) => {
                     console.error('Erro na conexão:', err);
-                    mostrarToast('Erro ao conectar');
+                    mostrarToast('Erro ao conectar: ' + err);
                 });
             });
 
             peer.on('error', (error) => {
                 console.error('Erro PeerJS:', error);
-                mostrarToast('Erro ao conectar: ID inválido');
+                mostrarToast('Erro ao conectar: Verifique o ID da sala');
             });
         }
 
@@ -848,50 +904,15 @@
                             atualizarListaUsuarios();
                             
                             // Avisar todos sobre novo usuário
-                            broadcast({
+                            broadcastToAll({
                                 type: 'system',
                                 text: `${data.nome} entrou no chat`
                             });
                             
                             // Atualizar lista para todos
-                            broadcast({
+                            broadcastToAll({
                                 type: 'userlist',
                                 usuarios: usuariosConectados
-                            });
-                        }
-                    }
-                    break;
-                    
-                case 'request_info':
-                    // Host pedindo informações do cliente
-                    if (!souHost && conn) {
-                        conn.send({
-                            type: 'client_info',
-                            nome: meuNome,
-                            id: meuId
-                        });
-                    }
-                    break;
-                    
-                case 'client_info':
-                    // Cliente enviou informações (host recebe)
-                    if (souHost) {
-                        const usuarioExistente = usuariosConectados.some(u => u.id === data.id);
-                        if (!usuarioExistente) {
-                            usuariosConectados.push({
-                                id: data.id,
-                                nome: data.nome
-                            });
-                            atualizarListaUsuarios();
-                            
-                            broadcast({
-                                type: 'userlist',
-                                usuarios: usuariosConectados
-                            });
-                            
-                            broadcast({
-                                type: 'system',
-                                text: `${data.nome} entrou no chat`
                             });
                         }
                     }
@@ -906,7 +927,7 @@
                     
                     // Se for host, repassar para outros clientes
                     if (souHost) {
-                        broadcast(data, connection);
+                        broadcastToAll(data, connection);
                     }
                     break;
 
@@ -920,37 +941,17 @@
                     // Mensagem do sistema
                     adicionarMensagemSistema(data.text);
                     break;
-
-                case 'leave':
-                    // Usuário saiu
-                    if (souHost) {
-                        usuariosConectados = usuariosConectados.filter(u => u.id !== data.id);
-                        atualizarListaUsuarios();
-                        
-                        broadcast({
-                            type: 'system',
-                            text: `${data.nome} saiu do chat`
-                        });
-                        
-                        broadcast({
-                            type: 'userlist',
-                            usuarios: usuariosConectados
-                        });
-                    }
-                    break;
             }
         }
 
-        // Broadcast (apenas para host)
-        function broadcast(mensagem, ignorarConn = null) {
-            if (!souHost || !peer) return;
+        // Broadcast para todos (apenas host)
+        function broadcastToAll(mensagem, ignorarConn = null) {
+            if (!souHost) return;
             
-            Object.values(peer.connections).forEach(conns => {
-                conns.forEach(connection => {
-                    if (connection.open && connection !== ignorarConn) {
-                        connection.send(mensagem);
-                    }
-                });
+            connections.forEach((conn, peerId) => {
+                if (conn !== ignorarConn && conn.open) {
+                    conn.send(mensagem);
+                }
             });
         }
 
@@ -977,10 +978,14 @@
             // Enviar para outros
             if (souHost) {
                 // Host envia para todos os clientes
-                broadcast(mensagem);
-            } else if (conn && conn.open) {
+                broadcastToAll(mensagem);
+            } else {
                 // Cliente envia para host
-                conn.send(mensagem);
+                connections.forEach((conn) => {
+                    if (conn.open) {
+                        conn.send(mensagem);
+                    }
+                });
             }
 
             messageInput.value = '';
@@ -1033,7 +1038,7 @@
                 
                 userElement.innerHTML = `
                     <div class="user-avatar" style="background: ${cor}">${avatar}</div>
-                    <span class="user-name">${escapeHtml(user.nome || 'Desconhecido')}</span>
+                    <span class="user-name">${escapeHtml(user.nome || 'Desconhecido')} ${user.isHost ? '👑' : ''}</span>
                     <div class="user-status"></div>
                 `;
                 
@@ -1044,18 +1049,19 @@
         // Voltar para o início
         function voltarInicio() {
             if (souHost) {
-                broadcast({
+                broadcastToAll({
                     type: 'system',
                     text: `${meuNome} encerrou a sala`
                 });
-            } else if (conn && conn.open) {
-                conn.send({
-                    type: 'leave',
-                    id: meuId,
-                    nome: meuNome
-                });
-                conn.close();
             }
+            
+            // Fechar todas as conexões
+            connections.forEach((conn) => {
+                if (conn.open) {
+                    conn.close();
+                }
+            });
+            connections.clear();
             
             if (peer) {
                 peer.destroy();
@@ -1073,6 +1079,10 @@
             document.getElementById('entrar-nome').value = '';
             document.getElementById('sala-criada').style.display = 'none';
             document.getElementById('criar-id').value = '';
+            
+            if (conexoesInfo) {
+                conexoesInfo.textContent = '0 conexões ativas';
+            }
         }
 
         // Copiar ID da sala
