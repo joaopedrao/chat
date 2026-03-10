@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat DVF - Multi-dispositivo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(180deg, #00A884 0%, #00A884 127px, #E5E5E5 127px, #E5E5E5 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        /* Tela de Configuração */
+        #setup-screen {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .setup-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 17px 50px 0 rgba(0,0,0,0.19);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo svg {
+            width: 60px;
+            height: 60px;
+            fill: #00A884;
+        }
+
+        .setup-container h2 {
+            color: #41525d;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .setup-container h3 {
+            color: #667781;
+            margin: 20px 0 10px;
+            font-size: 16px;
+        }
+
+        .setup-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #e9edef;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #00A884;
+            color: white;
+            border-color: #00A884;
+        }
+
+        .setup-panel {
+            display: none;
+        }
+
+        .setup-panel.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #3b4a54;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e9edef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00A884;
+        }
+
+        .form-group small {
+            display: block;
+            color: #667781;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #00A884;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #008f72;
+        }
+
+        .btn-primary:disabled {
+            background: #e9edef;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f2f5;
+            color: #3b4a54;
+            border: 1px solid #e9edef;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #e9edef;
+        }
+
+        .connection-info {
+            background: #f0f2f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+
+        .connection-id {
+            font-family: monospace;
+            font-size: 24px;
+            color: #00A884;
+            font-weight: bold;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            text-align: center;
+            margin-top: 5px;
+            letter-spacing: 2px;
+        }
+
+        .generate-id-btn {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .generate-id-btn button {
+            flex: 1;
+            padding: 10px;
+            background: #f0f2f5;
+            border: 1px solid #e9edef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .generate-id-btn button:hover {
+            background: #e9edef;
+        }
+
+        /* Chat Container */
+        #chat-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 95vh;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+            display: flex;
+            display: none;
+        }
+
+        .sidebar {
+            width: 30%;
+            background: white;
+            border-right: 1px solid #e9edef;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h3 {
+            color: #3b4a54;
+            font-size: 18px;
+        }
+
+        #user-count {
+            color: #667781;
+            font-size: 14px;
+        }
+
+        .user-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #00A884;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-name {
+            color: #3b4a54;
+            font-weight: 500;
+        }
+
+        .user-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00A884;
+            margin-left: auto;
+        }
+
+        .main-chat {
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            background: #efeae2;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            background: #f0f2f5;
+            border-bottom: 1px solid #e9edef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-info h2 {
+            color: #3b4a54;
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        .chat-header-info p {
+            color: #667781;
+            font-size: 13px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #efeae2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            max-width: 65%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.own-message {
+            align-self: flex-end;
+        }
+
+        .message-content {
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.own-message .message-content {
+            background: #d9fdd3;
+            border-top-right-radius: 0;
+        }
+
+        .message.other-message .message-content {
+            background: white;
+            border-top-left-radius: 0;
+        }
+
+        .message-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+        }
+
+        .message-time {
+            color: #667781;
+            font-size: 11px;
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #111b21;
+        }
+
+        .system-message {
+            text-align: center;
+            color: #667781;
+            font-size: 13px;
+            margin: 10px 0;
+            font-style: italic;
+            background: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 15px;
+            align-self: center;
+        }
+
+        .message-input-container {
+            padding: 15px 20px;
+            background: #f0f2f5;
+        }
+
+        #message-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            background: white;
+        }
+
+        #message-input:focus {
+            outline: none;
+        }
+
+        #message-form button {
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 50%;
+            background: #00A884;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        #message-form button:hover {
+            background: #008f72;
+        }
+
+        #message-form button:disabled {
+            background: #e9edef;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #00A884;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                bottom: -50px;
+                opacity: 0;
+            }
+            to {
+                bottom: 20px;
+                opacity: 1;
+            }
+        }
+
+        /* Debug */
+        #debug-info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            #chat-container {
+                flex-direction: column;
+            }
+            
+            .sidebar, .main-chat {
+                width: 100%;
+            }
+            
+            .sidebar {
+                height: 30%;
+            }
+            
+            .main-chat {
+                height: 70%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug Info -->
+    <div id="debug-info"></div>
+
+    <!-- Tela de Configuração -->
+    <div id="setup-screen">
+        <div class="setup-container">
+            <div class="logo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12c0 2.13.67 4.13 1.8 5.78L2.04 22l4.3-1.7C7.94 21.32 9.93 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
+                </svg>
+            </div>
+            <h2>Chat DVF</h2>
+            <p style="text-align: center; color: #667781; margin-bottom: 20px;">Conecte-se com amigos em qualquer lugar</p>
+            
+            <div class="setup-tabs">
+                <button class="tab-btn active" onclick="showPanel('criar')">Criar Sala</button>
+                <button class="tab-btn" onclick="showPanel('entrar')">Entrar na Sala</button>
+            </div>
+
+            <!-- Painel Criar Sala -->
+            <div id="panel-criar" class="setup-panel active">
+                <div class="form-group">
+                    <label>ID da Sala (opcional):</label>
+                    <div class="generate-id-btn">
+                        <button type="button" onclick="gerarIdNumerico()">🔢 Gerar Números</button>
+                        <button type="button" onclick="gerarIdPalavra()">📝 Gerar Palavra</button>
+                    </div>
+                    <input type="text" id="criar-id" placeholder="Deixe em branco para gerar automático" maxlength="20">
+                    <small>Use letras e números. Máximo 20 caracteres.</small>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="criar-nome" placeholder="Seu nome" maxlength="20" required>
+                </div>
+                <button class="btn-primary" onclick="criarSala()">Criar Nova Sala</button>
+                
+                <div id="sala-criada" style="display: none;">
+                    <h3>Sua sala foi criada!</h3>
+                    <div class="connection-info">
+                        <p>Compartilhe este ID com quem quiser entrar:</p>
+                        <div class="connection-id" id="sala-id"></div>
+                        <button class="btn-secondary" onclick="copiarId()" style="margin-top: 10px;">📋 Copiar ID</button>
+                    </div>
+                    <p style="color: #667781; font-size: 12px; text-align: center;">
+                        Aguardando conexões...
+                        <span class="loading"></span>
+                    </p>
+                    <div id="conexoes-info" style="margin-top: 10px; text-align: center; color: #00A884; font-weight: bold;">
+                        0 conexões ativas
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #f0f2f5; border-radius: 8px;">
+                        <p style="font-size: 12px; color: #667781;">
+                            <strong>📱 Para conectar de outro dispositivo:</strong><br>
+                            1. O outro dispositivo precisa estar conectado à internet<br>
+                            2. Use o ID exato mostrado acima<br>
+                            3. Certifique-se de que ambos estão online
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel Entrar na Sala -->
+            <div id="panel-entrar" class="setup-panel">
+                <div class="form-group">
+                    <input type="text" id="entrar-id" placeholder="ID da sala" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="entrar-nome" placeholder="Seu nome" maxlength="20" required>
+                </div>
+                <button class="btn-primary" onclick="entrarSala()">Entrar na Sala</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div id="chat-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3>Participantes</h3>
+                <span id="user-count">0 online</span>
+            </div>
+            <div class="user-list" id="user-list"></div>
+        </div>
+        
+        <div class="main-chat">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <h2 id="chat-title">Chat DVF</h2>
+                    <p id="connection-status">Desconectado</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-secondary" onclick="voltarInicio()">Sair</button>
+                </div>
+            </div>
+            
+            <div class="messages-container" id="messages-container"></div>
+            
+            <div class="message-input-container">
+                <form id="message-form" onsubmit="enviarMensagem(event)">
+                    <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off">
+                    <button type="submit" id="send-button" disabled>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M2 21L21 12L2 3V10L15 12L2 14V21Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script>
+        // Configuração de debug
+        const DEBUG = true;
+        function logDebug(msg) {
+            if (!DEBUG) return;
+            console.log('[DEBUG]', msg);
+            const debugDiv = document.getElementById('debug-info');
+            if (debugDiv) {
+                debugDiv.style.display = 'block';
+                debugDiv.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + msg;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        }
+
+        // Variáveis globais
+        let peer = null;
+        let connections = new Map();
+        let meuId = null;
+        let meuNome = '';
+        let usuariosConectados = [];
+        let souHost = false;
+        let salaId = '';
+        let reconectTimer = null;
+
+        // Elementos DOM
+        const setupScreen = document.getElementById('setup-screen');
+        const chatContainer = document.getElementById('chat-container');
+        const messagesContainer = document.getElementById('messages-container');
+        const userList = document.getElementById('user-list');
+        const userCount = document.getElementById('user-count');
+        const sendButton = document.getElementById('send-button');
+        const messageInput = document.getElementById('message-input');
+        const connectionStatus = document.getElementById('connection-status');
+        const chatTitle = document.getElementById('chat-title');
+        const criarIdInput = document.getElementById('criar-id');
+        const entrarIdInput = document.getElementById('entrar-id');
+        const conexoesInfo = document.getElementById('conexoes-info');
+
+        // Alternar entre painéis
+        function showPanel(panel) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.setup-panel').forEach(p => p.classList.remove('active'));
+            
+            if (panel === 'criar') {
+                document.querySelector('.tab-btn').classList.add('active');
+                document.getElementById('panel-criar').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('panel-entrar').classList.add('active');
+            }
+        }
+
+        // Gerar ID numérico de 5 dígitos
+        function gerarIdNumerico() {
+            const id = Math.floor(10000 + Math.random() * 90000).toString();
+            criarIdInput.value = id;
+            logDebug('ID numérico gerado: ' + id);
+        }
+
+        // Gerar ID em formato de palavra
+        function gerarIdPalavra() {
+            const palavras = ['CASA', 'AMOR', 'PAZ', 'SOL', 'MAR', 'LUZ', 'VIDA', 'BEM', 'ALMA', 'RISO'];
+            const palavra = palavras[Math.floor(Math.random() * palavras.length)] + Math.floor(Math.random() * 100);
+            criarIdInput.value = palavra;
+            logDebug('ID palavra gerado: ' + palavra);
+        }
+
+        // Mostrar toast
+        function mostrarToast(mensagem) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Configurar servidores ICE (fundamental para conexão entre redes)
+        const iceServers = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                { 
+                    urls: 'turn:turn.bistri.com:80',
+                    username: 'homeo',
+                    credential: 'homeo'
+                },
+                {
+                    urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+                    username: 'webrtc',
+                    credential: 'webrtc'
+                }
+            ],
+            sdpSemantics: 'unified-plan'
+        };
+
+        // Criar nova sala (HOST)
+        function criarSala() {
+            const nome = document.getElementById('criar-nome').value.trim();
+            let idSala = document.getElementById('criar-id').value.trim();
+            
+            if (!nome) {
+                mostrarToast('Digite seu nome');
+                return;
+            }
+
+            // Se não digitou ID, gerar um aleatório
+            if (!idSala) {
+                idSala = 'DVF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            // Validar ID (apenas letras e números)
+            if (!/^[a-zA-Z0-9]+$/.test(idSala)) {
+                mostrarToast('Use apenas letras e números no ID');
+                return;
+            }
+
+            meuNome = nome;
+            souHost = true;
+            salaId = idSala;
+
+            logDebug('Criando sala com ID: ' + idSala);
+
+            // Inicializar Peer com ID personalizado
+            peer = new Peer(idSala, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 3,
+                config: iceServers
+            });
+
+            peer.on('open', (id) => {
+                meuId = id;
+                document.getElementById('sala-id').textContent = id;
+                document.getElementById('sala-criada').style.display = 'block';
+                
+                logDebug('Peer aberto com ID: ' + id);
+                
+                // Adicionar usuário atual à lista
+                usuariosConectados = [{ 
+                    id: meuId, 
+                    nome: meuNome,
+                    isHost: true
+                }];
+                atualizarListaUsuarios();
+                
+                // Entrar no chat automaticamente como host
+                setupScreen.style.display = 'none';
+                chatContainer.style.display = 'flex';
+                sendButton.disabled = false;
+                connectionStatus.textContent = 'Host - Online';
+                chatTitle.textContent = `Sala: ${id}`;
+                
+                adicionarMensagemSistema('🎉 Você criou a sala! Compartilhe o ID para outros entrarem.');
+                
+                // Configurar recebimento de conexões
+                peer.on('connection', (connection) => {
+                    logDebug('Nova conexão recebida de: ' + connection.peer);
+                    
+                    // Configurar a conexão
+                    connection.on('data', (data) => {
+                        logDebug('Dados recebidos: ' + JSON.stringify(data));
+                        processarMensagem(data, connection);
+                    });
+                    
+                    connection.on('open', () => {
+                        logDebug('Conexão estabelecida com: ' + connection.peer);
+                        
+                        // Adicionar à lista de conexões
+                        connections.set(connection.peer, connection);
+                        
+                        // Atualizar contador
+                        if (conexoesInfo) {
+                            conexoesInfo.textContent = `${connections.size} conexões ativas`;
+                        }
+                        
+                        // Enviar lista de usuários atual
+                        connection.send({
+                            type: 'userlist',
+                            usuarios: usuariosConectados
+                        });
+                        
+                        // Pedir informações do cliente
+                        connection.send({
+                            type: 'request_info'
+                        });
+                    });
+                    
+                    connection.on('close', () => {
+                        logDebug('Conexão fechada com: ' + connection.peer);
+                        
+                        // Remover usuário da lista
+                        const usuarioRemovido = usuariosConectados.find(u => u.id === connection.peer);
+                        if (usuarioRemovido) {
+                            usuariosConectados = usuariosConectados.filter(u => u.id !== connection.peer);
+                            atualizarListaUsuarios();
+                            
+                            // Avisar outros clientes
+                            broadcastToAll({
+                                type: 'system',
+                                text: `👋 ${usuarioRemovido.nome} saiu do chat`
+                            });
+                            
+                            broadcastToAll({
+                                type: 'userlist',
+                                usuarios: usuariosConectados
+                            });
+                        }
+                        
+                        connections.delete(connection.peer);
+                        if (conexoesInfo) {
+                            conexoesInfo.textContent = `${connections.size} conexões ativas`;
+                        }
+                    });
+                    
+                    connection.on('error', (err) => {
+                        logDebug('Erro na conexão: ' + err);
+                    });
+                });
+            });
+
+            peer.on('error', (error) => {
+                logDebug('Erro PeerJS: ' + error.type + ' - ' + error.message);
+                if (error.type === 'unavailable-id') {
+                    mostrarToast('Este ID já está em uso. Escolha outro.');
+                } else {
+                    mostrarToast('Erro ao criar sala: ' + error.type);
+                }
+            });
+
+            peer.on('disconnected', () => {
+                logDebug('Peer desconectado, tentando reconectar...');
+                peer.reconnect();
+            });
+        }
+
+        // Entrar em uma sala (CLIENTE)
+        function entrarSala() {
+            const idSala = document.getElementById('entrar-id').value.trim().toUpperCase();
+            const nome = document.getElementById('entrar-nome').value.trim();
+
+            if (!idSala || !nome) {
+                mostrarToast('Preencha todos os campos');
+                return;
+            }
+
+            meuNome = nome;
+            souHost = false;
+            salaId = idSala;
+
+            logDebug('Tentando entrar na sala: ' + idSala);
+
+            mostrarToast('Conectando à sala...');
+
+            // Inicializar Peer com ID aleatório
+            peer = new Peer({
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 3,
+                config: iceServers
+            });
+
+            peer.on('open', (id) => {
+                meuId = id;
+                logDebug('Meu Peer ID: ' + id);
+                
+                // Tentar conectar à sala
+                logDebug('Conectando ao host: ' + idSala);
+                const connection = peer.connect(idSala, {
+                    reliable: true,
+                    serialization: 'json',
+                    metadata: {
+                        nome: nome
+                    }
+                });
+
+                // Timeout para conexão
+                const timeout = setTimeout(() => {
+                    if (!connection.open) {
+                        logDebug('Timeout de conexão');
+                        mostrarToast('Tempo limite excedido. Verifique o ID da sala.');
+                    }
+                }, 10000);
+
+                connection.on('open', () => {
+                    clearTimeout(timeout);
+                    logDebug('Conexão estabelecida com o host');
+                    
+                    connections.set(idSala, connection);
+                    
+                    // Entrar no chat
+                    setupScreen.style.display = 'none';
+                    chatContainer.style.display = 'flex';
+                    sendButton.disabled = false;
+                    connectionStatus.textContent = 'Conectado';
+                    chatTitle.textContent = `Sala: ${idSala}`;
+                    
+                    adicionarMensagemSistema('✅ Conectado à sala!');
+                    
+                    // Enviar informações do usuário
+                    connection.send({
+                        type: 'join',
+                        nome: meuNome,
+                        id: meuId
+                    });
+                });
+
+                connection.on('data', (data) => {
+                    logDebug('Dados recebidos do host: ' + JSON.stringify(data));
+                    processarMensagem(data, connection);
+                });
+
+                connection.on('close', () => {
+                    logDebug('Conexão fechada com o host');
+                    adicionarMensagemSistema('❌ Conexão perdida');
+                    sendButton.disabled = true;
+                    connectionStatus.textContent = 'Desconectado';
+                    connections.delete(idSala);
+                });
+
+                connection.on('error', (err) => {
+                    logDebug('Erro na conexão: ' + err);
+                    mostrarToast('Erro ao conectar: ' + err);
+                });
+            });
+
+            peer.on('error', (error) => {
+                logDebug('Erro PeerJS: ' + error.type + ' - ' + error.message);
+                mostrarToast('Erro ao conectar: Verifique o ID da sala');
+            });
+        }
+
+        // Processar mensagens recebidas
+        function processarMensagem(data, connection) {
+            switch(data.type) {
+                case 'join':
+                case 'client_info':
+                    // Cliente entrou na sala (host recebe)
+                    if (souHost) {
+                        const novoUsuario = {
+                            id: data.id,
+                            nome: data.nome
+                        };
+                        
+                        // Verificar se já existe
+                        if (!usuariosConectados.some(u => u.id === data.id)) {
+                            usuariosConectados.push(novoUsuario);
+                            atualizarListaUsuarios();
+                            logDebug('Novo usuário adicionado: ' + data.nome);
+                            
+                            // Avisar todos sobre novo usuário
+                            broadcastToAll({
+                                type: 'system',
+                                text: `👤 ${data.nome} entrou no chat`
+                            });
+                            
+                            // Atualizar lista para todos
+                            broadcastToAll({
+                                type: 'userlist',
+                                usuarios: usuariosConectados
+                            });
+                        }
+                    }
+                    break;
+
+                case 'request_info':
+                    // Host pedindo informações
+                    if (!souHost && connection) {
+                        connection.send({
+                            type: 'client_info',
+                            nome: meuNome,
+                            id: meuId
+                        });
+                    }
+                    break;
+
+                case 'message':
+                    // Mensagem de chat
+                    adicionarMensagemChat({
+                        ...data,
+                        own: false
+                    });
+                    
+                    // Se for host, repassar para outros clientes
+                    if (souHost) {
+                        broadcastToAll(data, connection);
+                    }
+                    break;
+
+                case 'userlist':
+                    // Atualizar lista de usuários
+                    usuariosConectados = data.usuarios || [];
+                    if (!souHost) {
+                        // Adicionar host à lista se não estiver
+                        if (!usuariosConectados.some(u => u.isHost)) {
+                            usuariosConectados.unshift({
+                                id: 'host',
+                                nome: 'Host',
+                                isHost: true
+                            });
+                        }
+                    }
+                    atualizarListaUsuarios();
+                    break;
+
+                case 'system':
+                    // Mensagem do sistema
+                    adicionarMensagemSistema(data.text);
+                    break;
+            }
+        }
+
+        // Broadcast para todos (apenas host)
+        function broadcastToAll(mensagem, ignorarConn = null) {
+            if (!souHost) return;
+            
+            connections.forEach((conn, peerId) => {
+                if (conn !== ignorarConn && conn.open) {
+                    conn.send(mensagem);
+                }
+            });
+        }
+
+        // Enviar mensagem
+        function enviarMensagem(event) {
+            event.preventDefault();
+            
+            const texto = messageInput.value.trim();
+            if (!texto) return;
+
+            const mensagem = {
+                type: 'message',
+                nome: meuNome,
+                texto: texto,
+                timestamp: new Date().toISOString()
+            };
+
+            // Adicionar à própria tela
+            adicionarMensagemChat({
+                ...mensagem,
+                own: true
+            });
+
+            // Enviar para outros
+            if (souHost) {
+                // Host envia para todos os clientes
+                broadcastToAll(mensagem);
+            } else {
+                // Cliente envia para host
+                connections.forEach((conn) => {
+                    if (conn.open) {
+                        conn.send(mensagem);
+                    }
+                });
+            }
+
+            messageInput.value = '';
+        }
+
+        // Adicionar mensagem ao chat
+        function adicionarMensagemChat(msg) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${msg.own ? 'own-message' : 'other-message'}`;
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            messageElement.innerHTML = `
+                <div class="message-info">
+                    <span class="message-sender" style="color: ${getColorFromName(msg.nome)}">${escapeHtml(msg.nome)}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${escapeHtml(msg.texto)}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Adicionar mensagem de sistema
+        function adicionarMensagemSistema(texto) {
+            const systemElement = document.createElement('div');
+            systemElement.className = 'system-message';
+            systemElement.textContent = texto;
+            messagesContainer.appendChild(systemElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Atualizar lista de usuários na sidebar
+        function atualizarListaUsuarios() {
+            userList.innerHTML = '';
+            userCount.textContent = `${usuariosConectados.length} online`;
+
+            usuariosConectados.forEach(user => {
+                const userElement = document.createElement('div');
+                userElement.className = 'user-item';
+                
+                const avatar = (user.nome || '?').charAt(0).toUpperCase();
+                const cor = getColorFromName(user.nome);
+                
+                userElement.innerHTML = `
+                    <div class="user-avatar" style="background: ${cor}">${avatar}</div>
+                    <span class="user-name">${escapeHtml(user.nome || 'Desconhecido')} ${user.isHost ? '👑' : ''}</span>
+                    <div class="user-status"></div>
+                `;
+                
+                userList.appendChild(userElement);
+            });
+        }
+
+        // Voltar para o início
+        function voltarInicio() {
+            if (souHost) {
+                broadcastToAll({
+                    type: 'system',
+                    text: `👋 ${meuNome} encerrou a sala`
+                });
+            }
+            
+            // Fechar todas as conexões
+            connections.forEach((conn) => {
+                if (conn.open) {
+                    conn.close();
+                }
+            });
+            connections.clear();
+            
+            if (peer) {
+                peer.destroy();
+            }
+            
+            setupScreen.style.display = 'block';
+            chatContainer.style.display = 'none';
+            messagesContainer.innerHTML = '';
+            usuariosConectados = [];
+            souHost = false;
+            
+            // Resetar inputs
+            document.getElementById('criar-nome').value = '';
+            document.getElementById('entrar-id').value = '';
+            document.getElementById('entrar-nome').value = '';
+            document.getElementById('sala-criada').style.display = 'none';
+            document.getElementById('criar-id').value = '';
+            
+            if (conexoesInfo) {
+                conexoesInfo.textContent = '0 conexões ativas';
+            }
+
+            // Limpar debug
+            const debugDiv = document.getElementById('debug-info');
+            if (debugDiv) {
+                debugDiv.innerHTML = '';
+                debugDiv.style.display = 'none';
+            }
+        }
+
+        // Copiar ID da sala
+        function copiarId() {
+            const id = document.getElementById('sala-id').textContent;
+            navigator.clipboard.writeText(id).then(() => {
+                mostrarToast('ID copiado!');
+            });
+        }
+
+        // Gerar cor baseada no nome
+        function getColorFromName(nome) {
+            if (!nome) return '#00A884';
+            const colors = ['#25D366', '#34B7F1', '#E542A4', '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9D56E', '#FF8C42'];
+            let hash = 0;
+            for (let i = 0; i < nome.length; i++) {
+                hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        // Escapar HTML para prevenir XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            // Gerar ID inicial como exemplo
+            setTimeout(() => {
+                if (!criarIdInput.value) {
+                    gerarIdPalavra();
+                }
+            }, 100);
+
+            // Mostrar informações de rede
+            logDebug('Chat DVF iniciado');
+            logDebug('Navegador: ' + navigator.userAgent);
+        });
+    </script>
+</body>
+</html>
